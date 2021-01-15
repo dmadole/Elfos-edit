@@ -210,7 +210,7 @@ fnamelp:   lda     ra                  ; get byte from filename
            ldn     rf                  ; get byte from argument
            lbnz    good                ; jump if filename given
            sep     scall               ; otherwise display usage message
-           dw      f_inmsg
+           dw      o_inmsg
            db      'Usage: edit filename',10,13,0
            sep     sret                ; and return to os
 good:      ldi     high fildesdta      ; point to file descriptor dta
@@ -744,7 +744,7 @@ printitgo: inc     r8                  ; output origin is 1
            ldi     low colon
            plo     rf
            sep     scall
-           dw      f_msg
+           dw      o_msg
            lda     ra                  ; get byte count
            plo     rc                  ; place into count register
            lbz     printend            ; jump if have last line of buffer
@@ -752,7 +752,7 @@ printlp:   glo     rc                  ; see if done
            lbz     printdn             ; jump if so
            lda     ra                  ; otherwise get byte
            sep     scall               ; and display it
-           dw      f_type
+           dw      o_type
            dec     rc                  ; decrement count
            lbr     printlp
 printdn:   sep     sret                ; return to caller
