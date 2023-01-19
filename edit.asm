@@ -6,29 +6,24 @@
 ; *** without express written permission from the author.         ***
 ; *******************************************************************
 
-include    bios.inc
-include    kernel.inc
+#include   bios.inc
+#include   kernel.inc
 
-           org     8000h
-           lbr     0ff00h
-           db      'edit',0
-           dw      9000h
-           dw      endrom+7000h
+           org     2000h-6
            dw      2000h
-           dw      endrom-2000h
+           dw      end-2000h
            dw      2000h
-           db      0
 
 ; RA - text buffer pointer
 ; R8 - Reg1 (line number)
 ; R9 - Reg2 (count)
 
-           org     02000h
+           org     2000h
            br      start
 
 include    date.inc
 include    build.inc
-           db      'Written by Michael H. Riley',0
+           db      'By Michael H. Riley, github.com/dmadole/Elfos-edit',0
 
 docrlf:    ldi     high crlf           ; display a crlf
            phi     rf
@@ -467,45 +462,44 @@ savedn:    sep     scall               ; close the file
 ; ***************************************
 ; *** Delete current line from buffer ***
 ; ***************************************
-kill:      sep     scall               ; move to specified line
+kill:      sep     scall               ; check if exists
+           dw      findline
+           lbdf    killquit
+           ghi     ra                  ; save dest pointer
+           phi     rd
+           glo     ra
+           plo     rd
+           sep     scall               ; move to specified line
            dw      setcurln
-killmnlp:  glo     r9                  ; check count
-           lbnz    killgo
+           glo     r9                  ; calc source pointer
+           str     r2
+           glo     r8
+           add
+           plo     r8
            ghi     r9
-           lbnz    killgo
+           str     r2
+           ghi     r8
+           adci    0
+           phi     r8
+           sep     scall               ; get address for line
+           dw      findline
+killline:  ldn     ra                  ; get length to next line
+           lbz     killdone
+           adi     1
+           plo     rc
+killloop:  lda     ra                  ; get source byte
+           str     rd                  ; place into destintion
+           inc     rd
+           dec     rc                  ; decrement count
+           glo     rc                  ; get count
+           lbnz    killloop            ; loop until line is done
+           lbr     killline            ; and loop for next line
+killdone:  str     rd
+killquit:  sep     scall               ; move to specified line
+           dw      getcurln
            sep     scall               ; display new line
            dw      printit
            lbr     mainlp              ; and back to main
-killgo:    sep     scall               ; get current line number
-           dw      getcurln
-           sep     scall               ; get address for line
-           dw      findline
-           ldn     ra                  ; get length to next line
-           adi     1
-           str     r2                  ; prepare to add it
-           plo     rc
-           glo     ra                  ; add it to line address
-           add
-           plo     rd
-           ghi     ra
-           adci    0
-           phi     rd
-killlp:    glo     rc                  ; get count
-           lbz     killnxt             ; jump if done copying line
-           lda     rd                  ; get source byte
-           str     ra                  ; place into destintion
-           inc     ra
-           dec     rc                  ; decrement count
-           lbr     killlp              ; loop until line is done
-killnxt:   dec     ra                  ; move back to length bytes
-           dec     rd
-           ldn     ra                  ; get length
-           lbz     killdn              ; jump if at end of buffer
-           adi     1                   ; prepare count
-           plo     rc
-           lbr     killlp              ; and loop for next line
-killdn:    dec     r9                  ; decrement count
-           lbr     killmnlp            ; and check for more
 
 ; ********************
 ; *** Return to OS ***
@@ -833,9 +827,11 @@ findline:  ldi     high textbuf        ; point to text buffer
            phi     rc
            glo     r8
            plo     rc
-findlp:    glo     rc                  ; see if count is zero
+findlp:    ghi     rc
+           lbnz    notfound
+           glo     rc                  ; see if count is zero
            lbz     found               ; jump if there
-           lda     ra
+notfound:  lda     ra
            lbz     fnderr              ; jump if end of buffer was reached
            str     r2                  ; prepare for add
            glo     ra                  ; add to address
@@ -849,7 +845,8 @@ findlp:    glo     rc                  ; see if count is zero
 found:     ldi     0                   ; signal line found
            shr
            sep     sret                ; and return to caller
-fnderr:    ldi     1                   ; signal end of buffer reached
+fnderr:    dec     ra
+           ldi     1                   ; signal end of buffer reached
            shr
            sep     sret                ; return to caller
 
@@ -991,7 +988,7 @@ fildesdta: dw      dta
            dw      0,0
            db      0,0,0,0
 
-endrom:    equ     $
+end:       equ     $
 
 dta:       ds      512
 
