@@ -6,8 +6,8 @@
 ; *** without express written permission from the author.         ***
 ; *******************************************************************
 
-#include   bios.inc
-#include   kernel.inc
+#include   include/bios.inc
+#include   include/kernel.inc
 
            org     2000h-6
            dw      2000h
@@ -21,8 +21,10 @@
            org     2000h
            br      start
 
-include    date.inc
-include    build.inc
+           db      1+80h
+           db      19
+           db      2023
+           dw      100
            db      'By Michael H. Riley, github.com/dmadole/Elfos-edit',0
 
 docrlf:    ldi     high crlf           ; display a crlf
