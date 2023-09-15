@@ -885,6 +885,9 @@ readln1:   sep     scall               ; read a byte
            dw      readbyte
            lbdf    readlneof           ; jump on eof
            plo     re                  ; keep a copy
+	   smi	   9		       ; allow tabs!
+	   bz      readln2
+	   glo     re
            smi     32                  ; look for anything below a space
            lbnf    readln1
 readln2:   glo     re                  ; recover byte
@@ -895,8 +898,12 @@ readln2:   glo     re                  ; recover byte
            dw      readbyte
            lbdf    readlneof           ; jump if end of file
            plo     re                  ; keep a copy of read byte
+	   smi	   9		       ; allow tabs!
+	   bz      readout
+	   glo     re
            smi     32                  ; make sure it is positive
            lbdf    readln2             ; loop back on valid characters
+readout:	
            ldi     0                   ; signal valid read
 readlncnt: shr                         ; shift into DF
            sep     sret                ; and return to caller
