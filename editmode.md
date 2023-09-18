@@ -52,6 +52,50 @@ Deletes are special
 :              x x     '  ; Corrected
 ```
 
+Here is a longer transcript showing several types of edits:
+```
+8>1,8p                                                                       
+1:This is a line that will get an initial insert                             
+2:This is a line that will get an initial overwrite                          
+3:Extend this line please                                                    
+4:Insert name here: []                                                       
+5:Over name here: [      ]                                                   
+6:Delete line here | delete me                                               
+7:Fixx the extra things on this line..                                       
+8:                                                                           
+8>1e                                                                         
+  This is a line that will get an initial insert                             
+:^Inserted,                                                                  
+1:Inserted, This is a line that will get an initial insert                   
+1>2e                                                                         
+  This is a line that will get an initial overwrite                         
+:'Overwrite                                                                 
+2:Overwrite line that will get an initial overwrite                         
+2>3e                                                                        
+  Extend this line please                                                   
+:+ Extended as requested                                                    
+3:Extend this line please Extended as requested                             
+3>4e                                                                        
+  Insert name here: []                                                      
+:                   ^Al                                                     
+4:Insert name here: [Al]                                                    
+4>5e                                                                        
+  Over name here: [      ]                                                  
+:                 'Al                                                       
+5:Over name here: [Al    ]                                                  
+5>6e                                                                        
+  Delete line here | delete me                                              
+:                 $                                                         
+6:Delete line here                                                          
+6>7e                                                                        
+  Fixx the extra things on this line..                                      
+:    x                              x                                       
+7:Fix the extra things on this line. 
+7>e                                                                         
+  Fix the extra things on this line.                                        
+:     xxxx           ^ that appear                                          
+7:Fix extra things that appear on this line.
+```
 
 
 
