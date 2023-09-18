@@ -9,7 +9,7 @@ This first character accepts a number of commands:
 
 * ^ - Insert at start of string
 * ' - Overwrite at start of string
-* + - Append to end of string (must be in first character)
+* \+ - Append to end of string (must be in first character)
 * $ - Kill to end of string (make line empty)
 * <space> - No action
 
