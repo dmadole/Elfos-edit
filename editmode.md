@@ -11,14 +11,14 @@ This first character accepts a number of commands:
 * ' - Overwrite at start of string
 * \+ - Append to end of string (must be in first character)
 * $ - Kill to end of string (make line empty)
-* <space> - No action
+* \<space\> - No action
 
 Every other character you input will line up with the characters from the line. You can use most of the same commands:
 * ^ - Insert at next character
 * ' - Overtype at next character
 * $ - Kill from next character to end of string
 * x - Delete this character (or X)
-* <space> - No action
+* \<space\> - No action
 
 
 Once you start an action like insert, kill, etc. the rest of the input will apply to that action. This doesn't apply to the X (delete) command but it must come before any other actions. 
