@@ -1199,29 +1199,6 @@ leditmode2:                  	; insert all of input string and then the rest of 
 	
 ledz:
 leditcrlf:	
-#if 0	
-	ldi 0dh
-	str rb
-	inc rb
-	ldi 0ah
-	str rb
-	inc rb
-	;; debug
-	ldi 0
-	str rb  		; make sure we are terminated
-	glo rb
-	str r2
-	ldi high ebuffer
-	phi ra
-	ldi low ebuffer
-	plo ra
-	sd
-	dec ra                  ; point to count
-	str ra    		; write count
-	sep scall
-	dw printitgo
-	lbr mainlp
-#else
 	ldi 0
 	str rb
 	glo rb
@@ -1241,7 +1218,6 @@ leditcrlf:
 	call setcurln
 	call printit
 	lbr mainlp
-#endif
 	
 
 char:      db      0
