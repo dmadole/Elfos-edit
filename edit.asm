@@ -1242,12 +1242,7 @@ leditcrlf:
 	call printit
 	lbr mainlp
 #endif
-
 	
-leditins:	
-	;; if insert mode move *buffer, *ebuffer until end of buffer. Then move rest of line to ebuffer
-	;; when done, kill line, insert ebuffer
-	lbr mainlp
 
 char:      db      0
 newmsg:    db      'New file'
