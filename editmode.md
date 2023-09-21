@@ -18,6 +18,8 @@ Every other character you input will line up with the characters from the line. 
 * ' - Overtype at next character
 * $ - Kill from next character to end of string
 * x - Delete this character (or X)
+* a - Convert letter to lowercase (assumes the letter is a letter)
+* A - Convert letter to uppercase (assumes the letter is a letter)
 * \<space\> - No action
 
 
@@ -102,4 +104,20 @@ Here is a longer transcript showing several types of edits:
 ## End of lines
 Lines always end with CRLF. If you overwrite (') a string shorter than a line, the line will fill in the part after the overwrite. If the overwrite is longer, it will extend the length of the line.
 
+
+## Note:
+If you want to split a line, you can use the following procedure.
+1. Edit the line (E command)
+2. Find the line break and place a $ command under it
+3. Copy the rest of the line into your terminal's clipboard (assuming you have a terminal program under Windows, Linux, etc.)
+4. Press enter to delete the end of the line
+5. Enter the D command to move to the next line
+6. Enter the I command and paste the text on the end of it before pressing enter. Press enter
+
+To join a line, the procedure is similar.
+1. Display the line you want to add to the end of a previous line using the P command
+2. Copy it into your clipboard
+3. kill the line with K
+4. Edit the line you want at the front of the join with the E command 
+5. Use the + edit command in the first character and then paste the clipboard after. Press enter
 

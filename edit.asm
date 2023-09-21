@@ -1061,7 +1061,7 @@ leditlpdn:			; now we type the edit line: a colon and then input
 	bnz leditchk
 	inc re			; overwrite mode in position 1 (do we need this anymore?)
 	inc rf			; skip to first edit position
-	br leditm1		; mode 1
+	lbr leditm1		; mode 1
 leditchk:
 	ldn rf
 	smi '^'			; insert mode at position 0
@@ -1124,8 +1124,24 @@ leditxtest:			; check for delete (x or X)
 	ani 0dfh  ; make upper case
 	;;  need to add + mode here later and > or $ mode (kill to eols)
 	smi 'X'
-	bz  leditdel
+	lbz  leditdel
 	;; if *buffer is sp,',or ^ then copy line to ebuffer
+	ghi rc
+	smi 'A'
+	bnz leditcklc
+	;;  convert to upper case
+	ldn ra
+	ani 0dfh  		; note we don't look to see this is really a letter, that's up to you
+	str ra
+	br leditatend
+leditcklc:
+	ghi rc
+	smi 'a'
+	bnz leditatend
+	;; convert to lower case
+	ldn ra
+	ori 20h  		; note we don't look to see this is really a letter, that's up to you
+	str ra
 leditatend:	
 	lda ra    		; get *line
 	str rb			; store in *ebuf
@@ -1162,7 +1178,7 @@ leditm1:
 	dec rc
 	glo rc
 	lbz  leditm1fin1	; at end of line so go to rest of input string (this is overwrite)
-	br leditm1              ; midstream keep going
+	lbr leditm1              ; midstream keep going
 
 	;; X command, delete
 leditdel:
@@ -1170,7 +1186,7 @@ leditdel:
 	inc ra			; skip next character in line
 	dec rc
 	glo rc
-	bnz leditnxt		; no more line
+	lbnz leditnxt		; no more line
 	lbr ledz
 leditm1fin1:			; copy rest of input string
 	lda rf
