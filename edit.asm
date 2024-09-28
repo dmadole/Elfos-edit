@@ -5,6 +5,12 @@
 ; *** This software may not be used in commercial applications    ***
 ; *** without express written permission from the author.         ***
 ; *******************************************************************
+.op "PUSH","R","9$1 73 8$1 73"
+.op "POP","R","60 72 A$1 F0 B$1"
+.op "MOV","NR","9$2 B$1 8$2 A$1"
+.op "MOV","NW","F8 H2 B$1 F8 L2 A$1"
+.op "CALL","W","D4 H1 L1"
+.op "RTN","","D5"
 
 #include   include/bios.inc
 #include   include/kernel.inc
@@ -385,7 +391,9 @@ noarg2_1:  ldn     rf                  ; get command
            ldn     rf                  ; get command
            smi     'G'                 ; check for go command
            lbz     go
-
+           ldn	   rf
+	   smi     'E'
+	   lbz     ledit
 
            ldi     high errmsg         ; display error
            phi     rf
@@ -464,7 +472,7 @@ savedn:    sep     scall               ; close the file
 ; ***************************************
 ; *** Delete current line from buffer ***
 ; ***************************************
-kill:      sep     scall               ; check if exists
+subkill:      sep     scall               ; check if exists
            dw      findline
            lbdf    killquit
            ghi     ra                  ; save dest pointer
@@ -497,10 +505,12 @@ killloop:  lda     ra                  ; get source byte
            lbnz    killloop            ; loop until line is done
            lbr     killline            ; and loop for next line
 killdone:  str     rd
-killquit:  sep     scall               ; move to specified line
-           dw      getcurln
-           sep     scall               ; display new line
-           dw      printit
+killquit:  lbr    getcurln	; hidden return
+	   
+
+	
+kill:	   call    subkill
+           call      printit	
            lbr     mainlp              ; and back to main
 
 ; ********************
@@ -741,6 +751,7 @@ printitgo: inc     r8                  ; output origin is 1
            plo     rf
            sep     scall
            dw      o_msg
+printnonum:	
            lda     ra                  ; get byte count
            plo     rc                  ; place into count register
            lbz     printend            ; jump if have last line of buffer
@@ -885,6 +896,9 @@ readln1:   sep     scall               ; read a byte
            dw      readbyte
            lbdf    readlneof           ; jump on eof
            plo     re                  ; keep a copy
+	   smi	   9		       ; allow tabs!
+	   bz      readln2
+	   glo     re
            smi     32                  ; look for anything below a space
            lbnf    readln1
 readln2:   glo     re                  ; recover byte
@@ -895,8 +909,12 @@ readln2:   glo     re                  ; recover byte
            dw      readbyte
            lbdf    readlneof           ; jump if end of file
            plo     re                  ; keep a copy of read byte
+	   smi	   9		       ; allow tabs!
+	   bz      readout
+	   glo     re
            smi     32                  ; make sure it is positive
            lbdf    readln2             ; loop back on valid characters
+readout:	
            ldi     0                   ; signal valid read
 readlncnt: shr                         ; shift into DF
            sep     sret                ; and return to caller
@@ -969,6 +987,254 @@ printnum:  ghi     r8                  ; transfer number to RD
            dw      o_msg
            sep     sret                ; and return to caller
 
+ledit:
+	sep     scall		; first we need to print the line with 2 spaces in front (no line number)
+	dw 	findline
+	lbdf    mainlp
+	glo	ra
+	push    ra
+        sep     scall               ; move to specified line
+        dw      setcurln
+	ldi ' '
+	sep scall
+	dw o_type
+	ldi ' '
+	sep scall
+	dw o_type
+	lda ra
+	plo rc
+leditlp:
+	glo rc
+	bz leditlpdn
+	dec rc
+	ldn ra
+	smi 9  			; convert tab to underscore
+	bnz leditlp1
+	ldi '_'
+	br leditlp2
+leditlp1:
+	ldn ra			 
+leditlp2:	
+	inc ra			; don't use lda because we might be sub'd
+	call o_type
+	br leditlp
+leditlpdn:			; now we type the edit line: a colon and then input
+	ldi ':'
+	sep scall
+	dw o_type
+	ldi high buffer
+	phi rf
+	ldi low buffer
+	plo rf
+	sep scall
+	dw o_input
+	shlc
+	stxd
+	sep scall
+	dw docrlf
+	irx
+	ldx
+	shr
+	lbdf mainlp
+	;;  do magic here R8=Line#, RB=pointer to ebuf, RF=pointer to input buffer, RA=pointer to line RE.0 = mode
+	;; point to ebuffer Note that line has a counter (we will put in rc)
+	pop ra			; restore line pointer
+	lda ra
+	plo rc			; get line counter (deduct 2 for CRLF)
+	dec rc
+	dec rc
+	ldi high ebuffer	; point to edit buffer
+	phi rb
+	ldi low ebuffer
+	plo rb
+	;;  set to norm mode
+	ldi 0
+	plo re
+	ldi high buffer
+	phi rf
+	ldi low buffer
+	plo rf
+	;; check *buffer (note first character doesn't directly change the string, just the mode (^,') or kill ($) or space for no change
+	ldn rf
+	lbz leditm1fin2   	; no input, just copy line
+	smi 27h 		; quote
+	bnz leditchk
+	inc re			; overwrite mode in position 1 (do we need this anymore?)
+	inc rf			; skip to first edit position
+	lbr leditm1		; mode 1
+leditchk:
+	ldn rf
+	smi '^'			; insert mode at position 0
+	bnz leditcheckpl
+	inc re
+	inc re
+	inc rf
+	lbr leditmode2		; mode 2
+
+leditcheckpl:	
+	ldn rf
+	smi '+'			; this is only valid in posiiton 0
+	bnz leditcheckdol
+	;;  copy entire line to append
+leditapp:
+	glo rc
+	bz leditapp1		; done when count is zero
+	lda ra
+	str rb
+	inc rb
+	dec rc
+	br leditapp
+	;;  copy rest of input buffer
+leditapp1:	
+	inc rf  		; skip the +
+	lbr leditm1fin1		
+leditcheckdol:
+	ldn rf			
+	smi '$'  		; make an emptry string
+	lbz ledz
+	;;  fall through
+
+leditchecked:	; ok we processed the first character which must be space, quote, caret, plus or $ 
+	inc rf	; move to next character
+leditnxt:	
+	ldn rf
+	phi rc			; save input character for later (might be zero)
+ledit1st:	
+	;; if ' we go to overwrite mode
+	smi 27h
+	bnz leditcont0
+	inc re  		; mode 1
+leditcont0:
+	ghi rc
+;; if ^ we go to insert mode
+	smi '^'
+	bnz leditcont1
+	ldi 2			; mode 2
+	plo re
+leditcont1:
+	ghi rc
+	smi '$'
+	bnz leditxtest
+	lda ra			; kill line after this character
+	str rb			; store this character
+	inc rb
+	lbr ledz		; done
+leditxtest:			; check for delete (x or X)
+	ghi rc
+	ani 0dfh  ; make upper case
+	;;  need to add + mode here later and > or $ mode (kill to eols)
+	smi 'X'
+	lbz  leditdel
+	;; if *buffer is sp,',or ^ then copy line to ebuffer
+	ghi rc
+	smi 'A'
+	bnz leditcklc
+	;;  convert to upper case
+	ldn ra
+	ani 0dfh  		; note we don't look to see this is really a letter, that's up to you
+	str ra
+	br leditatend
+leditcklc:
+	ghi rc
+	smi 'a'
+	bnz leditatend
+	;; convert to lower case
+	ldn ra
+	ori 20h  		; note we don't look to see this is really a letter, that's up to you
+	str ra
+leditatend:	
+	lda ra    		; get *line
+	str rb			; store in *ebuf
+	inc rb			; next
+	glo re
+	bnz leditmc	    	; don't test below if we are starting a mode
+	dec rb			; point back
+	glo rc			; end of line?
+	lbz  ledz               ; just in case line was empty (should not happen other than in position 0)
+	inc rb			; point forward again
+	dec rc			; see if more on real line
+	glo rc
+	lbz ledz
+	inc rc  		; prep for next dec
+leditmc:
+	dec rc		; decrement in either case
+	ldn rf			; if input pointer is at zero do not increment
+	bz  leditnoincf
+	inc rf			; next input char
+leditnoincf:	
+	glo re
+	bz leditnxt   		; normal
+	;;  we are just starting mode 1 (over) or mode 2 (insert)
+	smi 2
+	lbz leditmode2
+	;; ok we do overwrite until end of our string and/or the line, whichever is longer (if we are longer need to add CRLF)
+leditm1:
+	lda rf
+	phi rc			; save for later
+	lbz leditm1fin2         ; end of our input, go copy the rest of the line
+	str rb			; otehrwise put in ebuffer
+	inc rb			; advance ebuffer
+	inc ra			; advance line pointer
+	dec rc
+	glo rc
+	lbz  leditm1fin1	; at end of line so go to rest of input string (this is overwrite)
+	lbr leditm1              ; midstream keep going
+
+	;; X command, delete
+leditdel:
+	inc rf			; get to next input character
+	inc ra			; skip next character in line
+	dec rc
+	glo rc
+	lbnz leditnxt		; no more line
+	lbr ledz
+leditm1fin1:			; copy rest of input string
+	lda rf
+	lbz  leditcrlf
+	str rb
+	inc rb
+	br leditm1fin1
+	
+leditm1fin2:			; copy rest of line
+	glo rc
+	lbz ledz
+	lda ra
+	str rb
+	inc rb
+	dec rc
+	br leditm1fin2
+	
+leditmode2:                  	; insert all of input string and then the rest of the line
+
+	lda rf
+	bz  leditm1fin2
+	str rb
+	inc rb
+	br  leditmode2
+
+	
+ledz:
+leditcrlf:	
+	ldi 0
+	str rb
+	glo rb
+	str r2
+	ldi high ebuffer
+	phi rf
+	ldi low ebuffer
+	plo rf
+	push r8
+	call insertln  		
+	ldi 0
+	phi r9
+	plo r9
+	inc r9  		; R9=1
+	call subkill
+	pop r8
+	call setcurln
+	call printit
+	lbr mainlp
+	
 
 char:      db      0
 newmsg:    db      'New file'
@@ -996,6 +1262,8 @@ dta:       ds      512
 
 
 buffer:    ds      128
+ecount:	   ds      1    	; must be before ebuffer
+ebuffer:   ds      127	 
 numbuf:    ds      16
 
 ; text buffer format
